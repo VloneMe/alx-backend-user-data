@@ -1,27 +1,74 @@
 #!/usr/bin/env python3
 """
-Route module for the API
+This module defines routes for the API.
 """
 from os import getenv
 from api.v1.views import app_views
 from flask import Flask, jsonify, abort, request
-from flask_cors import (CORS, cross_origin)
-import os
+from flask_cors import CORS
 
+# Import authentication modules
+from api.v1.auth.auth import Auth
+from api.v1.auth.basic_auth import BasicAuth
 
+# Create Flask app
 app = Flask(__name__)
+
+# Register blueprint
 app.register_blueprint(app_views)
+
+# Enable Cross-Origin Resource Sharing (CORS)
 CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
+
+# Initialize authentication
+auth = None
+auth_type = getenv('AUTH_TYPE', 'auth')
+if auth_type == 'auth':
+    auth = Auth()
+if auth_type == 'basic_auth':
+    auth = BasicAuth()
+
+
+# Error handlers
+@app.errorhandler(401)
+def unauthorized(error) -> str:
+    """Handles Unauthorized errors."""
+    return jsonify({"error": "Unauthorized"}), 401
+
+
+@app.errorhandler(403)
+def forbidden(error) -> str:
+    """Handles Forbidden errors."""
+    return jsonify({"error": "Forbidden"}), 403
 
 
 @app.errorhandler(404)
 def not_found(error) -> str:
-    """ Not found handler
-    """
+    """Handles Not Found errors."""
     return jsonify({"error": "Not found"}), 404
 
 
+# Middleware to authenticate user before processing request
+@app.before_request
+def authenticate_user():
+    """Authenticates a user before processing a request."""
+    if auth:
+        excluded_paths = [
+            '/api/v1/status/',
+            '/api/v1/unauthorized/',
+            '/api/v1/forbidden/',
+        ]
+        if auth.require_auth(request.path, excluded_paths):
+            auth_header = auth.authorization_header(request)
+            user = auth.current_user(request)
+            if auth_header is None:
+                abort(401)
+            if user is None:
+                abort(403)
+
+
+# Run the app
 if __name__ == "__main__":
     host = getenv("API_HOST", "0.0.0.0")
     port = getenv("API_PORT", "5000")
-    app.run(host=host, port=port)
+    gpp.run(host=host, port=port)
