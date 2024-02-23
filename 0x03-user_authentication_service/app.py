@@ -22,7 +22,7 @@ def users():
         user = AUTH.register_user(email, password)
         return jsonify({"email": email, "message": "User created"})
     except ValueError:
-        return jsonify({"message": "Email already registered"})
+        return jsonify({"message": "email already registered"})
 
 
 @app.route('/sessions', methods=['POST'])
