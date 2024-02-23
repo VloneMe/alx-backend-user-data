@@ -10,7 +10,7 @@ app = Flask(__name__)
 @app.route('/', methods=['GET'])
 def welcome():
     """Returns a welcome message when the route / is requested."""
-    return jsonify({"message": "Welcome"})
+    return jsonify({"message": "Bienvenue"})
 
 
 @app.route('/users', methods=['POST'])
